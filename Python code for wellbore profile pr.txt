@@ -1,0 +1,459 @@
+Python code for wellbore profile prediction 
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from statistics import mean
+import helper
+import csv
+from sklearn.metrics import mean_squared_error
+!pip install shap
+import shap
+from google.colab import files
+data=pd.read_excel('/content/CAL.xlsx')
+#data=pd.read_excel('/content/calliper.xlsx')
+X = data.iloc[:, :-1]
+Y = 100.*data.iloc[:, 17]
+from sklearn.model_selection import train_test_split
+X_Train, X_Test, Y_Train, Y_Test = train_test_split(X, Y, test_size = 0.2, random_state = 0)
+# Initialize SHAP JavaScript visualization (only needed once)
+shap.initjs()
+
+Linear Regression
+from sklearn.linear_model import LinearRegression
+
+# Define X, Y, X_Test, and Y_Test before using them
+
+# Initialize and train the Linear Regression model
+lr = LinearRegression()
+lr.fit(X, Y)
+Y_PreLR = lr.predict(X_Test)
+
+# Create a SHAP explainer for the Linear Regression model
+explainer = shap.Explainer(lr, X)
+
+# Compute SHAP values for the test data
+shap_values = explainer.shap_values(X_Test)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_summary_lr.png')
+plt.close()  # Close the plot to prevent it from displaying in the notebook
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(explainer.expected_value, shap_values[0])
+plt.savefig('shap_force_lr.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=explainer.expected_value)
+shap.plots.bar(shap_values_explanation, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_bar_lr.png')
+plt.close()
+
+# Download the saved files (if you are using Google Colab)
+files.download('shap_summary_lr.png')
+files.download('shap_force_lr.png')
+files.download('shap_bar_lr.png')
+
+Polynomial Regression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+# Assuming you have already loaded X_Train, Y_Train, X_Test
+
+poly_reg = PolynomialFeatures(degree=2)
+X_polyt = poly_reg.fit_transform(X_Train)
+X_polytest = poly_reg.fit_transform(X_Test)
+
+lin_reg = LinearRegression()
+lin_reg.fit(X_polyt, Y_Train)
+Y_Predpoly = lin_reg.predict(X_polytest)
+
+# Create a SHAP explainer for the Linear Regression model
+explainer = shap.Explainer(lin_reg, X_polyt)
+
+# Compute SHAP values for the test data
+shap_values = explainer.shap_values(X_polyt)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary_lr.png'
+shap.summary_plot(shap_values, X_polyt, show=False)
+plt.savefig('shap_summary_lr.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(explainer.expected_value, shap_values[0])
+plt.savefig('shap_force_lr.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=explainer.expected_value)
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar_lr.png')
+plt.close()
+
+files.download('shap_summary_lr.png')
+files.download('shap_force_lr.png')
+files.download('shap_bar_lr.png')
+Histogram Gradient Boosting
+from sklearn.ensemble import HistGradientBoostingRegressor
+
+# Define X, Y, X_Test, and Y_Test before using them
+
+params = {'learning_rate': 0.1, 'loss': 'squared_error', 'random_state': 0}
+
+Hgbr = HistGradientBoostingRegressor(**params)
+Hgbr.fit(X, Y)
+Y_PreHGB = Hgbr.predict(X_Test)
+
+# Create a SHAP explainer for the HistGradientBoostingRegressor
+explainer = shap.Explainer(Hgbr)
+
+# Compute SHAP values for the test data
+shap_values = explainer.shap_values(X_Test)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_summary.png')
+plt.close()  # Close the plot to prevent it from displaying in the notebook
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(explainer.expected_value[0], shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=explainer.expected_value[0])
+shap.plots.bar(shap_values_explanation, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files (if you are using Google Colab)
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+Nearest Neighbors
+from sklearn.neighbors import KNeighborsRegressor
+
+# Define X, Y, X_Test, and Y_Test before using them
+
+# Initialize and train the KNN regressor
+knn = KNeighborsRegressor(n_neighbors=5)  # You can adjust the number of neighbors
+knn.fit(X, Y)
+Y_PreKNN = knn.predict(X_Test)
+
+
+# Create a SHAP explainer for the KNN regressor
+explainer = shap.Explainer(knn.predict, X_Train)
+
+# Compute SHAP values for the test data
+shap_values = explainer.shap_values(X_Test)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_summary_knn.png')
+plt.close()  # Close the plot to prevent it from displaying in the notebook
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+
+GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+
+# Create and train the GradientBoostingRegressor
+gbr = GradientBoostingRegressor(n_estimators=600, max_depth=5, learning_rate=0.01, min_samples_split=3)
+gbr.fit(X_Train, Y_Train)
+
+# Make predictions on the test data
+ypred = gbr.predict(X_Test)
+
+# Create a SHAP explainer for the GradientBoostingRegressor
+explainer = shap.Explainer(gbr)
+
+# Compute SHAP values for the test data
+shap_values = explainer.shap_values(X_Test)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_summary.png')
+plt.close()  # Close the plot to prevent it from displaying in the notebook
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(explainer.expected_value[0], shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gbr.init_.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)  # Use show=False to prevent displaying the plot
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+
+Gaussian Process Regression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel
+
+# Assuming you have defined X_Train, Y_Train, and X_Test before this code snippet
+
+kernel = DotProduct() + WhiteKernel()
+gpr = GaussianProcessRegressor(kernel=kernel, random_state=0).fit(X_Train, Y_Train)
+score = gpr.score(X_Train, Y_Train)
+print("Model Score:", score)
+
+Y_Pred_gpr, _ = gpr.predict(X_Test, return_std=True)
+explainer = shap.Explainer(gpr.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+
+Gaussian Naive Bayes
+from sklearn.naive_bayes import GaussianNB
+gnb = GaussianNB()
+Y_Train=Y_Train.astype('int')
+#Your y is of type object, so sklearn cannot recognize its type. Add the line y=y.astype('int') right after the line y = train[:, 1].
+y_pred = gnb.fit(X_Train,Y_Train)
+gnb.predict(X_Test)
+print("Number of mislabeled points out of a total %d points : %d"% (X_Test.shape[0], (Y_Test != y_pred).sum()))
+explainer = shap.Explainer(gnb.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+
+Bernoulli Naive Bayes
+from sklearn.naive_bayes import BernoulliNB
+nb = BernoulliNB()
+
+nb.fit(X_Train, Y_Train)
+Y_Precnb = nb.predict(X_Test)
+explainer=shap.Explainer(nb.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+Support Vector Regression
+from sklearn.svm import SVR
+regressorSVR = SVR(kernel = 'rbf')
+regressorSVR.fit(X_Train, Y_Train)
+y_predSVR = regressorSVR.predict(X_Test)
+explainer=shap.Explainer(regressorSVR.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+Random Forest Regression model
+from sklearn.ensemble import RandomForestRegressor
+regressor = RandomForestRegressor(n_estimators = 10, random_state = 0)
+regressor.fit(X_Train, Y_Train)
+explainer=shap.Explainer(regressor.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+DecisionTreeRegressor
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeRegressor
+DTR = DecisionTreeRegressor(random_state=0)
+cross_val_score(regressor, X, Y, cv=10)
+DTR.fit(X_Train,Y_Train)
+y_predDT = DTR.predict(X_Test)
+explainer=shap.Explainer(DTR.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
+Multi-layer Perceptron (MLP)
+from sklearn.neural_network import MLPRegressor
+MLPR = MLPRegressor(random_state=1, max_iter=500).fit(X_Train, Y_Train)
+y_predMLPR = MLPR.predict(X_Test)
+explainer=shap.Explainer(MLPR.predict, X_Train)
+shap_values = explainer.shap_values(X_Test)
+shap.summary_plot(shap_values, X_Test)
+shap.plots.force(0, shap_values[0])  # Set the base_value to 0 for PermutationExplainer
+
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Convert shap_values[0] to an Explanation object
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=0)
+shap.plots.bar(shap_values_explanation)
+# Generate a summary plot of SHAP values and save it as 'shap_summary.png'
+shap.summary_plot(shap_values, X_Test, show=False)
+plt.savefig('shap_summary.png')
+plt.close()
+
+# Create a force plot with expected value and save it as 'shap_force.png'
+shap.plots.force(0, shap_values[0])
+plt.savefig('shap_force.png')
+plt.close()
+
+# Generate a bar plot of feature importance and save it as 'shap_bar.png'
+shap_values_explanation = shap.Explanation(shap_values[0], base_values=gpr.predict(X_Test).mean())
+shap.plots.bar(shap_values_explanation, show=False)
+plt.savefig('shap_bar.png')
+plt.close()
+
+# Download the saved files
+files.download('shap_summary.png')
+files.download('shap_force.png')
+files.download('shap_bar.png')
